@@ -1,0 +1,218 @@
+class StockData():
+    
+    def __init__(self, closing_price, date_ddmmyyyy):
+        '''
+        Initialize the instance with an iterable of closing_price and date_ddmmyyyy. Returns None
+        
+        '''
+        self.closing_price= closing_price
+        self.date_ddmmyyyy = date_ddmmyyyy
+        return None
+        
+        
+    def YearlyChange(self):
+        '''
+        This function takes closing price and date and then returns an iterable of % yaerly changes
+        
+        '''
+        assert len(self.closing_price) == len(self.date_ddmmyyyy), 'The length of date and closing_price are not equal'
+        yearly_percent_change = []
+        i, j = 0, 0
+        while( i < len(self.closing_price)):
+            #print(i)
+            #j = i
+            final_closing_price = self.closing_price[i]
+            while(j+1<len(self.closing_price)):
+                    #print(i)
+                if(self.date_ddmmyyyy[j][7:] == self.date_ddmmyyyy[j+1][7:]):
+                    if(j == len(self.closing_price)):
+                        pass
+                    else:
+                        j = j+1
+                else:
+                    #print(j)
+                    break
+                #i = j
+            if (j<len(self.closing_price)-1):
+                initial_closing_price = self.closing_price[j+1]
+            else:
+                initial_closing_price = self.closing_price[j]
+            yearly_percent_change.append((final_closing_price - initial_closing_price)*100/initial_closing_price)                
+            i = j+1
+            j = j+1
+            if(j == len(self.closing_price)-1):
+                break
+                  
+        return yearly_percent_change
+    
+    
+    def MonthlyChange(self):
+        assert len(self.closing_price) == len(self.date_ddmmyyyy), 'The length of date and closing_price are not equal'
+        monthly_percent_change = []
+        i, j = 0, 0
+        while( i < len(self.closing_price)):
+            #print(i)
+            #j = i
+            final_closing_price = self.closing_price[i]
+            while(j+1<len(self.closing_price)):
+                    #print(i)
+                if(self.date_ddmmyyyy[j][3:5] == self.date_ddmmyyyy[j+1][3:5]):
+                    if(j == len(self.closing_price)):
+                        pass
+                    else:
+                        j = j+1
+                else:
+                    #print(j)
+                    break
+                #i = j
+            if (j<len(self.closing_price)-1):
+                initial_closing_price = self.closing_price[j+1]
+            else:
+                initial_closing_price = self.closing_price[j]
+            monthly_percent_change.append((final_closing_price - initial_closing_price)*100/initial_closing_price)                
+            i = j+1
+            j = j+1
+            if(j == len(self.closing_price)-1):
+                break
+        return monthly_percent_change
+        
+
+
+class IndexRandomWalk(StockData):
+    
+    def __init__(self, investment_horizon, num_of_iterations, year =1, *args):
+        #assert type(self.change_data) is list, "Change Data provided is not in a list" 
+        #self.change_data = change_data
+        self.year = year
+        self.investment_horizon = investment_horizon
+        self.num_of_iterations = num_of_iterations
+        super().__init__(*args)
+        
+    def GeometricWalkIndex(self):
+        import random
+        import math
+        import statistics
+        import numpy as np
+        #final_investment = 1
+        collection_iter = []
+        if(self.year == 1):
+            change_array = np.array(self.YearlyChange())
+            for i in range(self.num_of_iterations):
+                final_investment = 1
+                for i in range(self.investment_horizon):
+                    final_investment = final_investment*(1+ 0.01*random.choice(change_array))
+            
+                collection_iter.append(final_investment)
+        else:
+            change_array = np.array(self.MonthlyChange())
+            for i in range(self.num_of_iterations):
+                final_investment = 1
+                for i in range(self.investment_horizon*12):
+                    final_investment = final_investment*(1+ 0.01*random.choice(change_array))
+
+                collection_iter.append(final_investment)
+                
+        median_final_investment = statistics.median(collection_iter)
+        fifth_percentile_investment = np.percentile(np.array(collection_iter), 5)
+        return median_final_investment, fifth_percentile_investment
+    
+    
+    def GeometricWalkIndexFixed(self, fixed_rate):
+        self.fixed_rate = fixed_rate
+        import numpy as np
+        import statistics
+        #dict_median_fifth = dict()
+        median_list = []
+        fifth_perc_list = []
+        if(self.year == 1):
+            change_array = np.array(self.YearlyChange())
+            for j in range(101):
+                collection_iter = []
+                fraction = j/100
+                for i in range(self.num_of_iterations):
+                    final_investment = 1
+                    for i in range(self.investment_horizon):
+                        final_investment = fraction * final_investment*(1+ 0.01*random.choice(change_array)) + (1-fraction)*(1+self.fixed_rate)
+
+                    collection_iter.append(final_investment)
+                median_final_investment = statistics.median(collection_iter)
+                median_list.append(median_final_investment)
+                fifth_percentile_investment = np.percentile(np.array(collection_iter), 5)
+                fifth_perc_list.append(fifth_percentile_investment)
+        else:
+            change_array = np.array(self.MonthlyChange())
+            for j in range(101):
+                collection_iter = []
+                fraction = j/100
+                for i in range(self.num_of_iterations):
+                    final_investment = 1
+                    for i in range(self.investment_horizon*12):
+                        final_investment = fraction * final_investment*(1+ 0.01*random.choice(change_array)) + (1-fraction)*(1+self.fixed_rate)
+
+                    collection_iter.append(final_investment)
+                median_final_investment = statistics.median(collection_iter)
+                median_list.append(median_final_investment)
+                fifth_percentile_investment = np.percentile(np.array(collection_iter), 5)
+                fifth_perc_list.append(fifth_percentile_investment)
+        return median_list, fifth_perc_list
+    
+    
+    def GeometricWalkIndexInsurance(self, payoff, index_returns_bucket):
+        self.payoff = payoff
+        self.index_returns_bucket = index_returns_bucket
+        #GeometricWalkIndex(self):
+        import random
+        import math
+        import statistics
+        import numpy as np
+        #final_investment = 1
+        median_list = []
+        fifth_perc_list = []
+        median_returns_list = []
+        fifth_perc_returns_list = []
+        if(self.year == 1):
+            change_array = np.array(self.YearlyChange())
+            for j in range(1,101):
+                collection_iter = []
+                fraction = j/100
+                for i in range(self.num_of_iterations):
+                    final_investment = 1
+                    for i in range(self.investment_horizon):
+                        index_returns = random.choice(change_array)
+                        if (index_returns <= index_returns_bucket):
+                            final_investment = fraction * final_investment*(1+ 0.01*index_returns) + (1-fraction)*(1+self.payoff* fraction)
+                        else:
+                            final_investment = fraction * final_investment*(1+ 0.01*index_returns)
+
+                    collection_iter.append(final_investment)
+                median_final_investment = statistics.median(collection_iter)
+                median_list.append(median_final_investment)
+                median_returns_list.append((median_final_investment)**(1/self.investment_horizon)-1)
+                
+                fifth_percentile_investment = np.percentile(np.array(collection_iter), 5)
+                fifth_perc_list.append(fifth_percentile_investment)
+                fifth_perc_returns_list.append((fifth_percentile_investment)**(1/self.investment_horizon)-1)
+        else:
+            change_array = np.array(self.MonthlyChange())
+            for j in range(1,101):
+                collection_iter = []
+                fraction = j/100
+                for i in range(self.num_of_iterations):
+                    final_investment = 1
+                    for i in range(self.investment_horizon*12):
+                        index_returns = random.choice(change_array)
+                        if (index_returns <= index_returns_bucket):
+                            final_investment = fraction * final_investment*(1+ 0.01*index_returns) + (1-fraction)*(1+self.payoff* fraction)
+                        else:
+                            final_investment = fraction * final_investment*(1+ 0.01*index_returns)
+
+                    collection_iter.append(final_investment)
+                median_final_investment = statistics.median(collection_iter)
+                median_list.append(median_final_investment)
+                median_returns_list.append((median_final_investment)**(1/self.investment_horizon*12)-1)
+                
+                fifth_percentile_investment = np.percentile(np.array(collection_iter), 5)
+                fifth_perc_list.append(fifth_percentile_investment)
+                fifth_perc_returns_list.append((fifth_percentile_investment)**(1/self.investment_horizon*12)-1)
+        return median_list, fifth_perc_list, median_returns_list, fifth_perc_returns_list
+    
